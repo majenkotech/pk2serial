@@ -85,7 +85,7 @@ void log_buf(char *kind, unsigned char *data, int len) {
     if (len) {
         LOGL(2, "%s: ", kind);
         for(i=0; i<len; i++) { LOGL(2, "%02X ", data[i]); }
-        LOGL(2, "\n");
+        LOGL(2, "\r\n");
     }
 }
 
@@ -93,13 +93,13 @@ void log_buf(char *kind, unsigned char *data, int len) {
 void usb_send_buf(void *buffer) {
     int rv;
     if (BUFFER_SIZE != (rv = usb_interrupt_write(handle, ENDPOINT_OUT, buffer, BUFFER_SIZE, TIMEOUT))) {
-        RAISE_ERROR("Invalid size request: %d bytes.\n", rv);
+        RAISE_ERROR("Invalid size request: %d bytes.\r\n", rv);
     }
 }
 void usb_receive_buf(void *buffer) {
     int rv;
     if (BUFFER_SIZE != (rv = usb_interrupt_read(handle, ENDPOINT_IN, buffer, BUFFER_SIZE, TIMEOUT))) {
-        RAISE_ERROR("Invalid size response: %d bytes.\n", rv);
+        RAISE_ERROR("Invalid size response: %d bytes.\r\n", rv);
     }
 }
 
@@ -176,7 +176,7 @@ int transfer_input(int fd, int max_tx) {
 
     if (-1 == buf[1]) return buf[1];
 
-    LOG("I %2d\n", buf[1]);
+    LOG("I %2d\r\n", buf[1]);
     usb_send_buf(buf);
     return buf[1];
 }
@@ -189,20 +189,20 @@ void transfer_output(int fd) {   // from PK2 -> host
     usb_send(cmd, 1);
     usb_receive_buf(buf);
 
-        LOG("      O %2d\n", buf[0]);
+        LOG("      O %2d\r\n", buf[0]);
 
     if (buf[0]) { 
 
         written = write(fd, buf + 1, buf[0]); 
         if (written != buf[0]) {
-            RAISE_ERROR("output buffer overrun!\n");
+            RAISE_ERROR("output buffer overrun!\r\n");
         }
     }
 }
 
 /* Signal handler */
 int stop = 0;
-void handler(int signal) { LOG("got signal %d\n", signal); stop = 1; }
+void handler(int signal) { LOG("got signal %d\r\n", signal); stop = 1; }
 
 
 /* Event loop */
@@ -213,7 +213,7 @@ void start_serial(void) {
     /* Compute optimal buffer size depending on desired latency. */
     int usec_per_byte = (10 * (1000000 / baud_rate));
 
-    LOG("latency = %d bytes\n", latency_bytes);
+    LOG("latency = %d bytes\r\n", latency_bytes);
 
 
     /* Setup PK2 with target off.  FIXME: connect to running target! */
@@ -226,11 +226,11 @@ void start_serial(void) {
     reset_release();
 
     /* Check if votage is ok. */
-    LOG("status %04X\n", get_status());
+    LOG("status %04X\r\n", get_status());
 
     /* Go */
     if (-1 == fcntl(input_fd, F_SETFL, O_NONBLOCK))  { 
-        RAISE_ERROR("Can't set input_fd O_NONBLOCK.\n"); 
+        RAISE_ERROR("Can't set input_fd O_NONBLOCK.\r\n"); 
     }
 
     struct termios options;
@@ -242,16 +242,18 @@ void start_serial(void) {
     options.c_cflag |= (CLOCAL | CREAD);
     options.c_lflag |= ISIG;
     if (tcsetattr(input_fd, TCSANOW, &options) != 0) {
-        fprintf(stderr, "Can't set up console\n");
+        fprintf(stderr, "Can't set up console\r\n");
     }
 
 
     uart_on(baud_rate);
+    fprintf(stderr, "Connected to PICkit2 Serial.\r\n");
+    fprintf(stderr, "CTRL-C to exit, CTRL-D to disconnect input\r\n");
     while(!stop) {
 
         if (eof) {
             /* If input is closed we cn just poll the output. */
-            LOG("EOF\n");
+            LOG("EOF\r\n");
             usleep(usec_per_byte);
             transfer_output(output_fd);
         }
@@ -267,7 +269,7 @@ void start_serial(void) {
             FD_SET(input_fd, &inset);
             if (-1 == (select(1+input_fd, &inset, NULL, NULL, &timeout))) {
                 if (errno != EINTR) {
-                    RAISE_ERROR("select() error\n");
+                    RAISE_ERROR("select() error\r\n");
                 }
             }
 
@@ -277,7 +279,7 @@ void start_serial(void) {
                 rv = transfer_input(input_fd, latency_bytes);
                 if (rv == -1) { 
                     if (errno == EAGAIN) break;
-                    RAISE_ERROR("read(): %s\n",strerror(errno)); 
+                    RAISE_ERROR("read(): %s\r\n",strerror(errno)); 
                 }
                 if (rv == 0) {
                     eof = 1;
@@ -301,7 +303,7 @@ void start_serial(void) {
 
 
     if (tcsetattr(input_fd, TCSANOW, &savedOptions) != 0) {
-        fprintf(stderr, "Can't clean up console\n");
+        fprintf(stderr, "Can't clean up console\r\n");
     }
     /* Cleanup */
     uart_off();
@@ -309,15 +311,15 @@ void start_serial(void) {
 }
 void usage(void){
     fprintf(stderr,
-            "usage: pk2serial [<option> ...]\n"
-            "  options:\n"
-            "    -b rate         Transmission rate (9600 baud)\n"
-            "    -l bufsize      Latency (32 bytes)\n"
-            "    -e              Exit on EOF\n"
-            "    -r              Reset target\n"
-            "    -p              Power target (Spec says not to!)\n"
-            "    -v              Verbose output\n"
-            "    -h              This help text.\n"
+            "usage: pk2serial [<option> ...]\r\n"
+            "  options:\r\n"
+            "    -b rate         Transmission rate (9600 baud)\r\n"
+            "    -l bufsize      Latency (32 bytes)\r\n"
+            "    -e              Exit on EOF\r\n"
+            "    -r              Reset target\r\n"
+            "    -p              Power target (Spec says not to!)\r\n"
+            "    -v              Verbose output\r\n"
+            "    -h              This help text.\r\n"
 
 );
 }
@@ -356,20 +358,20 @@ int main(int argc, char **argv) {
             break;
         case '?':
             if ((optopt == 'b') || (optopt == 'l'))
-                fprintf (stderr, "Option -%c requires an argument.\n", 
+                fprintf (stderr, "Option -%c requires an argument.\r\n", 
                          optopt);
             else if (isprint (optopt))
-                fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                fprintf (stderr, "Unknown option `-%c'.\r\n", optopt);
             else
                 fprintf (stderr,
-                         "Unknown option character `\\x%x'.\n",
+                         "Unknown option character `\\x%x'.\r\n",
                          optopt);
         default:
             usage_exit();
         }
     }
 
-    LOG("baud rate = %d\n", baud_rate);
+    LOG("baud rate = %d\r\n", baud_rate);
 
     
     signal(SIGINT, handler);
@@ -392,24 +394,24 @@ int main(int argc, char **argv) {
                 && (dev->descriptor.idProduct == product)) {
 
                 if (!(handle = usb_open(dev))) {
-                    RAISE_ERROR("Can't open device.\n");
+                    RAISE_ERROR("Can't open device.\r\n");
                 }
                 /* FIXME: Detach if necessary 
                    usb_get_driver_np
                    usb_detach_kernel_driver_np
                  */
                 if (-1 == usb_set_configuration(handle, 2)) { // Try vendor config (not HID!)
-                    RAISE_ERROR("Can't set vendor config.\n");
+                    RAISE_ERROR("Can't set vendor config.\r\n");
                 }
                 if (-1 == usb_claim_interface(handle, 0)) {
-                    RAISE_ERROR("Can't claim interface.\n");
+                    RAISE_ERROR("Can't claim interface.\r\n");
                 }
                 start_serial();
                 if (-1 == usb_release_interface(handle, 0)) {
-                    RAISE_ERROR("Can't release interface.\n");
+                    RAISE_ERROR("Can't release interface.\r\n");
                 }
                 if (-1 == usb_close(handle)) {
-                    RAISE_ERROR("Can't close device.\n");
+                    RAISE_ERROR("Can't close device.\r\n");
                 }
             }
         }
