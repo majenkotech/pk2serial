@@ -11,4 +11,5 @@ clean:
 	rm -f ${BIN} ${OBJS}
 
 install: ${BIN}
+	install -d -m 755 ${DESTDIR}/usr/bin
 	install -m755 ${BIN} ${DESTDIR}/usr/bin

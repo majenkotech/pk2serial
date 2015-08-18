@@ -1,0 +1,13 @@
+Source: pk2serial
+Section: Communications
+Priority: optional
+Maintainer: Matt Jenkins <matt@majenko.co.uk>
+Build-Depends: debhelper (>= 9), libusb-dev
+Standards-Version: 3.9.6
+Homepage: https://github.com/majenkotech/pk2serial
+
+Package: pk2serial
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: PICkit2 Serial Command Line Interface
+ Command line utility to interface with the PICkit2's UART mode.
