@@ -20,7 +20,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <termios.h>
-
+#include <pty.h>
 
 
 /* Program options */
@@ -35,6 +35,7 @@ int exit_on_eof = 0;
 int latency_bytes = 32;
 int power_target = 0;    // (1)
 int reset_target = 0;
+int pty_mode = 0;
 
 /* (1) Manual says not to power target in UART mode.  I found this to
    work but somehow be less reliable..  Note that VDD does need to be
@@ -248,7 +249,11 @@ void start_serial(void) {
 
     uart_on(baud_rate);
     fprintf(stderr, "Connected to PICkit2 Serial.\r\n");
-    fprintf(stderr, "CTRL-C to exit, CTRL-D to disconnect input\r\n");
+    if (pty_mode == 1) {
+        fprintf(stderr, "CTRL-C to exit.\r\n");
+    } else {
+        fprintf(stderr, "CTRL-C to exit, CTRL-D to disconnect input.\r\n");
+    }
     while(!stop) {
 
         if (eof) {
@@ -318,6 +323,7 @@ void usage(void){
             "    -e              Exit on EOF\r\n"
             "    -r              Reset target\r\n"
             "    -p              Power target (Spec says not to!)\r\n"
+            "    -t              PTY mode\r\n"
             "    -v              Verbose output\r\n"
             "    -h              This help text.\r\n"
 
@@ -338,13 +344,14 @@ int main(int argc, char **argv) {
 
     int c;
     opterr = 0;
-    while ((c = getopt(argc, argv, "rpevhb:l:")) != -1) {
+    while ((c = getopt(argc, argv, "rptevhb:l:")) != -1) {
         switch(c) {
         case 'h': usage(); exit(0);
         case 'p': power_target = 1; break;
         case 'r': reset_target = 1; break;
         case 'v': verbose++; break;
         case 'e': exit_on_eof = 1; break;
+        case 't': pty_mode = 1; break;
         case 'b': 
             baud_rate = strtol(optarg, NULL, 10);
             LIMIT(baud_rate, <, 10);     // arbitrary limit at 1 byte / second.
@@ -406,7 +413,23 @@ int main(int argc, char **argv) {
                 if (-1 == usb_claim_interface(handle, 0)) {
                     RAISE_ERROR("Can't claim interface.\r\n");
                 }
+                int pty_master_fd;
+                int pty_slave_fd;
+                if (pty_mode == 1) {
+                    char dev[100];
+                    if (openpty(&pty_master_fd, &pty_slave_fd, dev, NULL, NULL) == -1) {
+                        RAISE_ERROR("Cannot allocate PTY.\r\n");
+                    }
+                    input_fd = pty_master_fd;
+                    output_fd = pty_master_fd;
+                    fprintf(stderr, "Opened PTY on %s\r\n", dev);
+                }
                 start_serial();
+                if (pty_mode == 1) {
+                    close(pty_master_fd);
+                    close(pty_slave_fd);
+                }
+                
                 if (-1 == usb_release_interface(handle, 0)) {
                     RAISE_ERROR("Can't release interface.\r\n");
                 }

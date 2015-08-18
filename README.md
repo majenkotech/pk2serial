@@ -4,4 +4,4 @@ command line program with additional enhancements.
 Enhancements so far include:
 
 * Raw mode terminal
-
+* PTY pass-through mode (virtual serial port)

@@ -1,4 +1,4 @@
-LIBS=-lusb
+LIBS=-lusb -lutil
 BIN=pk2serial
 OBJS=pk2serial.o
 CFLAGS=
