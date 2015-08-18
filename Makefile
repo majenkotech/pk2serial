@@ -9,3 +9,6 @@ ${BIN}: ${OBJS}
 
 clean:
 	rm -f ${BIN} ${OBJS}
+
+install: ${BIN}
+	install -m755 ${BIN} ${DESTDIR}/usr/bin
