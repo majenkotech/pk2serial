@@ -1,3 +1,9 @@
+pk2serial (1.0.5) unstable; urgency=low
+
+  * Added PTY passthrough mode
+
+ -- Matt Jenkins <matt@majenko.co.uk>  Tue, 18 Aug 2015 18:33:37 +0100
+
 pk2serial (1.0.4) unstable; urgency=low
 
   * Added connect message and raw mode CR
