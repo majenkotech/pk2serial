@@ -1,4 +1,11 @@
 LIBS=-lusb
+BIN=pk2serial
+OBJS=pk2serial.o
+CFLAGS=
 
-pk2serial: pk2serial.o
-	cc -o $@ $< ${LIBS}
+${BIN}: ${OBJS}
+	cc ${CFLAGS} -o $@ $< ${LIBS}
+
+
+clean:
+	rm -f ${BIN} ${OBJS}
